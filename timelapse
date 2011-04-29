@@ -1,0 +1,126 @@
+#!/usr/bin/perl -w
+
+use utf8;
+use locale;
+
+use Modern::Perl;
+
+use Getopt::Long;
+use Carp;
+use File::Spec;
+
+my $v; # verbose
+my $help;
+
+my $time = 60;
+my $dir = "~/timelapse";
+
+my $make;
+my $fps = 25;
+my $out = "~/timelapse.avi";
+
+Getopt::Long::Configure ("bundling");
+GetOptions(
+    'verbose|v' => \$v,
+    'help|h' => \$help,
+
+    'time|t=i' => \$time,
+    'dir|d=s' => \$dir,
+
+    'make' => \$make,
+    'fps=i' => \$fps,
+    'out|o=s' => \$out,
+);
+
+my $path = real_path ($dir);
+$out = real_path ($out);
+
+if ($help) {
+    say "Timelapse tool.";
+    say "";
+    say "Example usage:";
+    say "timelapse";
+    say "   Will screenshot every minute and store them in ~/timelapse.";
+    say "timelapse -t 20 -d ~/shots";
+    say "   Will screenshot every 20 seconds and store in ~/shots.";
+    say "timelapse --make --fps 40";
+    say "   Compile a timelapse from all jpg's in ~/timelapse";
+    say "   And output as ~/timelapse.avi";
+    say "timelapse --make -d ~/shots -o party.avi";
+    say "   Make a video from our shots dir and save it as party.avi";
+    say "";
+    say "Flags and options.";
+    say "--verbose or -v";
+    say "   Verbose output.";
+    say "--help or -h";
+    say "   Show this message.";
+    say "--time <timeout> or -t <timeout>";
+    say "   Set timeout between screens. Defaults to 60.";
+    say "--dir <directory> or -d <directory>";
+    say "   Specify directory to store images in. Defaults to ~/timelapse.";
+    say "--make";
+    say "   Create a timelapse video.";
+    say "--fps <fps>";
+    say "   Specify fps for our video. Defaults to 25.";
+    say "--out <output> or -o <output>";
+    say "   Filename of our output video. Defualts to ~/timelapse.avi";
+}
+elsif ($make) {
+    say "Timelapse video creation started.";
+    say "Using all jpg's in dir: $dir";
+
+    say "Oops.. can't read from $dir." unless (-d $path);
+
+    say "Recording at ${fps}fps";
+
+    $out .= ".avi" if ($out !~ /\.avi$/);
+
+    my $cmd = "mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -fps $fps -o $out 'mf://$path/*.jpg'";
+
+    say "Executing: $cmd" if ($v);
+
+    my $res = `$cmd`;
+
+    if ($res =~ /Exiting/) {
+        say $res if ($v);
+        croak "Couldn't create a video!";
+    }
+    else {
+        say "Output to $out.";
+    }
+}
+else {
+
+    say "Screenshot capture started.";
+    say "$time seconds between each capture.";
+    say "Saving screenshots in: $dir";
+    say "Real path: $path" if ($v);
+    say "Verbose output" if ($v);
+
+    unless (-d $path) {
+        mkdir $path or croak "Couldn't create dir: $path $!";
+    }
+
+    while (1) {
+        sleep $time;
+        `scrot '%Y-%m-%d_%T.jpg' -q 100 -e 'mv \$f $path'`;
+        say "Screenshot saved in $dir" if ($v);
+    }
+}
+
+sub real_path
+{
+    my ($path) = (@_);
+
+    if ($path =~ /^~(.*)/) {
+        chomp (my $home=`echo \$HOME`);
+        return $home . $1;
+    }
+    elsif ($path =~ /^\.(.*)/) {
+        return File::Spec->rel2abs($path);
+    }
+    else {
+        return File::Spec->canonpath($path);
+    }
+}
+
