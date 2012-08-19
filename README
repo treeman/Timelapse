@@ -1,5 +1,0 @@
-Very simple fast and brutal timelapse creation tool using perl and mencoder.
-
-Bugs:
-Different screen resolutions will cause mancoder to crash (need to go through all files and resize them).
-
