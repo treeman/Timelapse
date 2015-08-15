@@ -19,6 +19,8 @@ my $make;
 my $fps = 25;
 my $out = "~/timelapse.avi";
 
+my $crop;
+
 Getopt::Long::Configure ("bundling");
 GetOptions(
     'verbose|v' => \$v,
@@ -30,6 +32,8 @@ GetOptions(
     'make' => \$make,
     'fps=i' => \$fps,
     'out|o=s' => \$out,
+
+    'crop|c=s' => \$crop,
 );
 
 my $path = real_path ($dir);
@@ -48,6 +52,8 @@ if ($help) {
     say "   And output as ~/timelapse.avi";
     say "timelapse --make -d ~/shots -o party.avi";
     say "   Make a video from our shots dir and save it as party.avi";
+    say "timelapse --make --crop 1920:1080:1080:480";
+    say "   Crop the images at position x:1920 y:1080 w:1080 h:480";
     say "";
     say "Flags and options.";
     say "--verbose or -v";
@@ -74,8 +80,10 @@ elsif ($make) {
     say "Recording at ${fps}fps";
 
     $out .= ".avi" if ($out !~ /\.avi$/);
+    my $crop_cmd = "";
+    $crop_cmd = " -vf crop=$crop" if $crop;
 
-    my $cmd = "mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -fps $fps -o $out 'mf://$path/*.jpg'";
+    my $cmd = "mencoder -nosound -ovc lavc -lavcopts vcodec=mpeg4 -fps $fps -o $out 'mf://$path/*.jpg' $crop_cmd";
 
     say "Executing: $cmd" if ($v);
 
